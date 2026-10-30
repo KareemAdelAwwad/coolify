@@ -183,6 +183,32 @@ test('a finished service start stores the status of each service part and broadc
     Event::assertDispatched(ServiceStatusChanged::class, fn (ServiceStatusChanged $event) => $event->teamId === $this->team->id);
 });
 
+test('a finished service start stores running:starting while a service container health check is starting', function () {
+    Event::fake([ServiceStatusChanged::class]);
+    $service = Service::factory()->create([
+        'environment_id' => $this->environment->id,
+        'server_id' => $this->server->id,
+        'destination_id' => $this->destination->id,
+        'destination_type' => $this->destination->getMorphClass(),
+        'docker_compose_raw' => "services:\n  app:\n    image: nginx\n",
+    ]);
+    $app = ServiceApplication::create(['name' => 'app', 'service_id' => $service->id, 'status' => 'exited']);
+    $labels = fn (string $subType, string $subUuid, string $name) => [
+        'coolify.serviceUuid' => $service->uuid,
+        'coolify.service.subType' => $subType,
+        'coolify.service.subUuid' => $subUuid,
+        'com.docker.compose.service' => $name,
+    ];
+    fakeInspectOutputs([implode("\n", [
+        inspectedContainer("app-{$service->uuid}", 'running', 'starting', $labels('application', $app->uuid, 'app')),
+    ])]);
+
+    event(new ServiceStartFinished(ServiceStartFinished::dataFor($service)));
+
+    expect($app->fresh()->status)->toBe('running:starting')
+        ->and($service->fresh()->status)->toBe('running:starting');
+});
+
 test('a finished service start is ignored when the event team does not own the service', function (string $case) {
     Event::fake([ServiceStatusChanged::class]);
     Process::fake();

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Log;
  * 2. Restarting → degraded:unhealthy (or restarting:unknown if preserveRestarting=true)
  * 3. Mixed (running + exited) → degraded:unhealthy
  * 4. Mixed (running + starting) → starting:unknown
- * 5. Running → running:healthy/unhealthy/unknown
+ * 5. Running → running:healthy/unhealthy/starting/unknown
  * 6. Dead/Removing → degraded:unhealthy
  * 7. Paused → paused:unknown
  * 8. Starting/Created → starting:unknown
@@ -100,6 +100,7 @@ class ContainerStatusAggregator
         $hasRunning = false;
         $hasRestarting = false;
         $hasUnhealthy = false;
+        $hasHealthStarting = false;
         $hasUnknown = false;
         $hasExited = false;
         $hasStarting = false;
@@ -121,6 +122,9 @@ class ContainerStatusAggregator
                 if (str($status)->contains('unhealthy')) {
                     $hasUnhealthy = true;
                 }
+                if (str($status)->contains('starting')) {
+                    $hasHealthStarting = true;
+                }
                 if (str($status)->contains('unknown')) {
                     $hasUnknown = true;
                 }
@@ -140,6 +144,7 @@ class ContainerStatusAggregator
             $hasRunning,
             $hasRestarting,
             $hasUnhealthy,
+            $hasHealthStarting,
             $hasUnknown,
             $hasExited,
             $hasStarting,
@@ -177,6 +182,7 @@ class ContainerStatusAggregator
         $hasRunning = false;
         $hasRestarting = false;
         $hasUnhealthy = false;
+        $hasHealthStarting = false;
         $hasUnknown = false;
         $hasExited = false;
         $hasStarting = false;
@@ -194,7 +200,9 @@ class ContainerStatusAggregator
                 $hasRunning = true;
                 if ($health === 'unhealthy') {
                     $hasUnhealthy = true;
-                } elseif (is_null($health) || $health === 'starting') {
+                } elseif ($health === 'starting') {
+                    $hasHealthStarting = true;
+                } elseif (is_null($health) || $health === 'unknown') {
                     $hasUnknown = true;
                 }
             } elseif ($state === 'exited') {
@@ -213,6 +221,7 @@ class ContainerStatusAggregator
             $hasRunning,
             $hasRestarting,
             $hasUnhealthy,
+            $hasHealthStarting,
             $hasUnknown,
             $hasExited,
             $hasStarting,
@@ -230,6 +239,7 @@ class ContainerStatusAggregator
      * @param  bool  $hasRunning  Has at least one running container
      * @param  bool  $hasRestarting  Has at least one restarting container
      * @param  bool  $hasUnhealthy  Has at least one unhealthy container
+     * @param  bool  $hasHealthStarting  Has at least one container with starting health
      * @param  bool  $hasUnknown  Has at least one container with unknown health
      * @param  bool  $hasExited  Has at least one exited container
      * @param  bool  $hasStarting  Has at least one starting/created container
@@ -244,6 +254,7 @@ class ContainerStatusAggregator
         bool $hasRunning,
         bool $hasRestarting,
         bool $hasUnhealthy,
+        bool $hasHealthStarting,
         bool $hasUnknown,
         bool $hasExited,
         bool $hasStarting,
@@ -281,6 +292,8 @@ class ContainerStatusAggregator
         if ($hasRunning) {
             if ($hasUnhealthy) {
                 return 'running:unhealthy';
+            } elseif ($hasHealthStarting) {
+                return 'running:starting';
             } elseif ($hasUnknown) {
                 return 'running:unknown';
             } else {

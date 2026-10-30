@@ -1,7 +1,8 @@
 @php
         [$statusType, $statusLabel] = match (true) {
-            str($resource->status)->contains('running') => ['success', formatContainerStatus($resource->status)],
+            str($resource->status)->contains('unhealthy') => ['error', formatContainerStatus($resource->status)],
             str($resource->status)->contains(['starting', 'restarting', 'degraded']) => ['warning', formatContainerStatus($resource->status)],
+            str($resource->status)->contains('running') => ['success', formatContainerStatus($resource->status)],
             default => ['error', formatContainerStatus($resource->status)],
         };
         $resourceName = $resource->human_name

@@ -22,6 +22,22 @@ describe('aggregateFromStrings', function () {
         expect($result)->toBe('running:healthy');
     });
 
+    test('returns running:starting for single running container with starting health', function () {
+        $statuses = collect(['running:starting']);
+
+        $result = $this->aggregator->aggregateFromStrings($statuses);
+
+        expect($result)->toBe('running:starting');
+    });
+
+    test('returns running:starting when running containers include starting health and healthy', function () {
+        $statuses = collect(['running:healthy', 'running:starting']);
+
+        $result = $this->aggregator->aggregateFromStrings($statuses);
+
+        expect($result)->toBe('running:starting');
+    });
+
     test('returns running:unhealthy for single unhealthy running container', function () {
         $statuses = collect(['running:unhealthy']);
 
@@ -411,6 +427,21 @@ describe('aggregateFromContainers', function () {
         $result = $this->aggregator->aggregateFromContainers($containers);
 
         expect($result)->toBe('paused:unknown');
+    });
+
+    test('returns running:starting for container with starting health', function () {
+        $containers = collect([
+            (object) [
+                'State' => (object) [
+                    'Status' => 'running',
+                    'Health' => (object) ['Status' => 'starting'],
+                ],
+            ],
+        ]);
+
+        $result = $this->aggregator->aggregateFromContainers($containers);
+
+        expect($result)->toBe('running:starting');
     });
 
     test('returns starting:unknown for starting container', function () {

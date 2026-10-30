@@ -186,6 +186,8 @@ test('maps Coolify statuses to tones', () => {
     stopped: 'bad',
     restarting: 'busy',
     'starting:unknown': 'busy',
+    'running:starting': 'busy',
+    'running (starting)': 'busy',
     paused: 'idle',
     '': 'idle',
     null: 'idle',

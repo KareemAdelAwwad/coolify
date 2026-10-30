@@ -573,7 +573,7 @@ export function statusTone(status) {
   if (BUSY.includes(state)) return 'busy';
   if (BAD.includes(state)) return 'bad';
   if (state === 'degraded') return 'warn';
-  if (state === 'running' || state === 'healthy') return health === 'unhealthy' ? 'warn' : 'ok';
+  if (state === 'running' || state === 'healthy') return health === 'unhealthy' ? 'warn' : (health === 'starting' ? 'busy' : 'ok');
   return 'idle';
 }
 
